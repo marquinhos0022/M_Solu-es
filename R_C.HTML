@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Fornecimento de Combustível</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        h2, h3 {
+            color: #333;
+            text-align: center;
+        }
+        .form-container, .table-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        label {
+            margin: 10px 0;
+        }
+        input, button, .fuel-type {
+            width: 100%;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .generate-pdf {
+            margin-top: 20px;
+            background-color: #007bff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .totals p {
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .footer {
+            text-align: right;
+            margin-top: 10px;
+            font-style: italic;
+        }
+        .header-info {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>RELATÓRIO DE FORNECIMENTO DE COMBUSTÍVEL</h2>
+    <h3>POSBRAL - Posto Brandão</h3>
+
+    <div class="form-container">
+        <label for="lotacao">Lotação:</label>
+        <input type="text" id="lotacao" placeholder="Digite a lotação">
+        
+        <label>Tipo de Combustível:</label>
+        <div class="fuel-type">
+            <input type="radio" id="gasolina" name="tipoCombustivel" value="Gasolina Comum" checked>
+            <label for="gasolina">Gasolina Comum</label>
+            <input type="radio" id="diesel" name="tipoCombustivel" value="Diesel S10">
+            <label for="diesel">Diesel S10</label>
+        </div>
+
+        <label for="litros">Quantidade de Litros:</label>
+        <input type="number" id="litros" placeholder="Digite a quantidade de litros">
+        
+        <label for="valorNota">Valor da Nota Fiscal (R$):</label>
+        <input type="number" id="valorNota" placeholder="Digite o valor da nota fiscal">
+
+        <button onclick="adicionarEntrada()">Adicionar Entrada</button>
+    </div>
+
+    <div class="table-container" id="relatorioContainer">
+        <div class="header-info">
+            <p>ESTADO DE ALAGOAS</p>
+            <p>PREFEITURA MUNICIPAL DE CHÃ PRETA/AL</p>
+            <p>Rua Dr. Chico Teixeira, 115, Centro - Chã Preta/AL</p>
+            <p>CNPJ nº 12.334.629/0001-57</p>
+        </div>
+
+        <table id="relatorio">
+            <thead>
+                <tr>
+                    <th>Lotação</th>
+                    <th>Tipo</th>
+                    <th>Total de Litros</th>
+                    <th>Valor da Nota Fiscal</th>
+                    <th>Valor do Imposto (0,24%)</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- As entradas aparecerão aqui -->
+            </tbody>
+        </table>
+        <div class="totals" id="totais">
+            <p><strong>Total de Litros de Diesel:</strong> <span id="totalLitrosDiesel">0</span> L</p>
+            <p><strong>Total de Litros de Gasolina Comum:</strong> <span id="totalLitrosGasolina">0</span> L</p>
+            <p><strong>Total Valor Diesel:</strong> <span id="totalValorDiesel">R$ 0,00</span></p>
+            <p><strong>Total Valor Gasolina Comum:</strong> <span id="totalValorGasolina">R$ 0,00</span></p>
+            <p><strong>Valor Geral Total:</strong> <span id="valorGeralTotal">R$ 0,00</span></p>
+        </div>
+        <div class="footer" id="dataRelatorio"></div>
+    </div>
+
+    <button class="generate-pdf" onclick="gerarPDF()">Gerar PDF do Relatório</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    <script>
+        let totalLitrosDiesel = 0;
+        let totalLitrosGasolina = 0;
+        let totalValorDiesel = 0;
+        let totalValorGasolina = 0;
+
+        const formatter = new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+
+        function adicionarEntrada() {
+            const lotacao = document.getElementById("lotacao").value;
+            const tipo = document.querySelector('input[name="tipoCombustivel"]:checked').value;
+            const litros = parseFloat(document.getElementById("litros").value);
+            const valorNota = parseFloat(document.getElementById("valorNota").value);
+            const valorImposto = valorNota * 0.0024;
+
+            if (lotacao && tipo && !isNaN(litros) && !isNaN(valorNota)) {
+                const table = document.getElementById("relatorio").getElementsByTagName("tbody")[0];
+                const newRow = table.insertRow();
+
+                newRow.innerHTML = `
+                    <td>${lotacao}</td>
+                    <td>${tipo}</td>
+                    <td>${litros.toFixed(2)} L</td>
+                    <td>${formatter.format(valorNota)}</td>
+                    <td>${formatter.format(valorImposto)}</td>
+                    <td><button onclick="excluirEntrada(this)">Excluir</button></td>
+                `;
+
+                if (tipo === "Diesel S10") {
+                    totalLitrosDiesel += litros;
+                    totalValorDiesel += valorNota;
+                } else if (tipo === "Gasolina Comum") {
+                    totalLitrosGasolina += litros;
+                    totalValorGasolina += valorNota;
+                }
+
+                atualizarTotais();
+
+                document.getElementById("lotacao").value = '';
+                document.getElementById("litros").value = '';
+                document.getElementById("valorNota").value = '';
+            } else {
+                alert("Por favor, preencha todos os campos corretamente.");
+            }
+        }
+
+        function excluirEntrada(button) {
+            const row = button.parentElement.parentElement;
+            const tipo = row.cells[1].innerText;
+            const litros = parseFloat(row.cells[2].innerText);
+            const valorNota = parseFloat(row.cells[3].innerText.replace("R$", "").replace(".", "").replace(",", "."));
+
+            if (tipo === "Diesel S10") {
+                totalLitrosDiesel -= litros;
+                totalValorDiesel -= valorNota;
+            } else if (tipo === "Gasolina Comum") {
+                totalLitrosGasolina -= litros;
+                totalValorGasolina -= valorNota;
+            }
+
+            row.remove();
+            atualizarTotais();
+        }
+
+        function atualizarTotais() {
+            document.getElementById("totalLitrosDiesel").innerText = totalLitrosDiesel.toFixed(2);
+            document.getElementById("totalLitrosGasolina").innerText = totalLitrosGasolina.toFixed(2);
+            document.getElementById("totalValorDiesel").innerText = formatter.format(totalValorDiesel);
+            document.getElementById("totalValorGasolina").innerText = formatter.format(totalValorGasolina);
+            document.getElementById("valorGeralTotal").innerText = formatter.format(totalValorDiesel + totalValorGasolina);
+        }
+
+        function gerarPDF() {
+            const relatorioContainer = document.getElementById("relatorioContainer");
+            const data = new Date();
+            document.getElementById("dataRelatorio").innerText = `Relatório ${data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}`;
+
+            const options = {
+                margin: 0.5,
+                filename: 'Relatorio_Fornecimento_Combustivel.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().from(relatorioContainer).set(options).save();
+        }
+    </script>
+</body>
+</html>

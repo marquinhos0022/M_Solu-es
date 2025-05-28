@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Pagamento</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        h2, h3, h4 { text-align: center; }
+        label, select, input { display: block; width: 100%; margin-top: 10px; }
+        .input-group { margin-bottom: 10px; }
+        .buttons { margin-top: 20px; display: flex; justify-content: space-between; gap: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #d1e7dd; }
+        .action-buttons { display: flex; gap: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>RELATÓRIO DE PAGAMENTO Nº <span id="reportDate"></span></h2>
+        <h3>SECRETARIA MUNICIPAL DE FINANÇAS</h3>
+        <h4>PREFEITURA MUNICIPAL DE CHÃ PRETA/AL - CNPJ 12.334.629/0001-57</h4>
+        
+        <div class="input-group">
+            <label>Credor: <input type="text" id="credor"></label>
+            <label>Lotação:
+                <select id="lotacao"></select>
+            </label>
+            <label>Recurso:
+                <select id="recurso"></select>
+            </label>
+            <label>Valor: <input type="number" id="valor"></label>
+            <div class="buttons">
+                <button id="adicionarAtualizarBtn" onclick="adicionarOuAtualizarEntrada()">Adicionar</button>
+                <button id="cancelarEdicaoBtn" style="display: none;" onclick="cancelarEdicao()">Cancelar Edição</button>
+            </div>
+        </div>
+
+        <div id="exportArea">
+            <h2>RELATÓRIO DE PAGAMENTO Nº <span id="exportReportDate"></span></h2>
+            <h3>SECRETARIA MUNICIPAL DE FINANÇAS</h3>
+            <h4>PREFEITURA MUNICIPAL DE CHÃ PRETA/AL - CNPJ 12.334.629/0001-57</h4>
+            
+            <table id="tabela">
+                <thead>
+                    <tr>
+                        <th>Credor</th>
+                        <th>Lotação</th>
+                        <th>Recurso</th>
+                        <th>Valor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <h3>Total Geral: R$ <span id="totalGeral">0.00</span></h3>
+            <h3>Total por Lotação:</h3>
+            <ul id="totalPorLotacao"></ul>
+            <h3>Total por Recurso:</h3>
+            <ul id="totalPorRecurso"></ul>
+        </div>
+
+        <div class="buttons">
+            <button onclick="gerarPDF()">Gerar PDF</button>
+            <button onclick="gerarPNG()">Gerar PNG</button>
+        </div>
+    </div>
+
+    <script>
+        function formatDate(date) {
+            return date.toLocaleDateString('pt-BR').replace(/\//g, "");
+        }
+        
+        const currentDate = new Date();
+        document.getElementById("reportDate").innerText = formatDate(currentDate);
+        document.getElementById("exportReportDate").innerText = formatDate(currentDate);
+        
+        // Função para gerar PNG (já existente e funcional)
+        function gerarPNG() {
+            const exportArea = document.getElementById("exportArea");
+            html2canvas(exportArea).then(canvas => {
+                const link = document.createElement("a");
+                link.href = canvas.toDataURL("image/png");
+                link.download = `Relatorio_Pagamento_${formatDate(new Date())}.png`;
+                link.click();
+            });
+        }
+
+        // Função para gerar PDF (corrigida)
+        function gerarPDF() {
+            const exportArea = document.getElementById("exportArea");
+            const { jsPDF } = window.jspdf;
+
+            html2canvas(exportArea, {
+                scale: 2 // Aumenta a escala para melhor qualidade do PDF
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+
+                const doc = new jsPDF('p', 'mm', 'a4');
+                let position = 0;
+
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                doc.save(`Relatorio_Pagamento_${formatDate(new Date())}.pdf`);
+            });
+        }
+        
+        const lotacoes = ["ADMINISTRAÇÃO", "GABINETE", "FINANÇAS", "EDUCAÇÃO", "ASSISTENCIA SOCIAL", "INFRAESTRUTURA", "AGRICULTURA", "CULTURA", "ESPORTE", "CONTROLADORIA", "FUNSERP", "OUTROS"];
+        const recursos = ["PROPRIO", "MERENDA ESCOLA", "QSE", "OUTROS RECURSOS DA EDUCAÇÃO", "CRAS", "CREAS", "SCFV", "EMENDAS ESTADO", "EMENDAS UNIÃO", "SAÚDE", "REPASSE FINANCEIRO", "OUTROS RECURSOS"];
+        
+        lotacoes.forEach(l => document.getElementById("lotacao").innerHTML += `<option>${l}</option>`);
+        recursos.forEach(r => document.getElementById("recurso").innerHTML += `<option>${r}</option>`);
+        
+        let entradas = [];
+        let editingIndex = -1; // -1 significa que não está editando nenhuma entrada
+
+        function limparCampos() {
+            document.getElementById("credor").value = "";
+            document.getElementById("lotacao").selectedIndex = 0;
+            document.getElementById("recurso").selectedIndex = 0;
+            document.getElementById("valor").value = "";
+        }
+        
+        function adicionarOuAtualizarEntrada() {
+            const credor = document.getElementById("credor").value;
+            const lotacao = document.getElementById("lotacao").value;
+            const recurso = document.getElementById("recurso").value;
+            const valor = parseFloat(document.getElementById("valor").value) || 0;
+            
+            if (!credor || valor <= 0) {
+                alert("Preencha todos os campos corretamente.");
+                return;
+            }
+            
+            if (editingIndex === -1) {
+                // Adicionar nova entrada
+                entradas.push({ credor, lotacao, recurso, valor });
+            } else {
+                // Atualizar entrada existente
+                entradas[editingIndex] = { credor, lotacao, recurso, valor };
+                editingIndex = -1; // Resetar para não estar mais em modo de edição
+                document.getElementById("adicionarAtualizarBtn").innerText = "Adicionar";
+                document.getElementById("cancelarEdicaoBtn").style.display = "none";
+            }
+            
+            atualizarTabela();
+            limparCampos();
+        }
+
+        function editarEntrada(index) {
+            editingIndex = index;
+            const entrada = entradas[index];
+
+            document.getElementById("credor").value = entrada.credor;
+            document.getElementById("lotacao").value = entrada.lotacao;
+            document.getElementById("recurso").value = entrada.recurso;
+            document.getElementById("valor").value = entrada.valor;
+
+            document.getElementById("adicionarAtualizarBtn").innerText = "Atualizar";
+            document.getElementById("cancelarEdicaoBtn").style.display = "block";
+        }
+
+        function removerEntrada(index) {
+            entradas.splice(index, 1);
+            atualizarTabela();
+            cancelarEdicao(); // Garante que o modo de edição seja cancelado se o item editado for removido
+        }
+
+        function cancelarEdicao() {
+            editingIndex = -1;
+            limparCampos();
+            document.getElementById("adicionarAtualizarBtn").innerText = "Adicionar";
+            document.getElementById("cancelarEdicaoBtn").style.display = "none";
+        }
+        
+        function atualizarTabela() {
+            const tbody = document.querySelector("#tabela tbody");
+            tbody.innerHTML = "";
+            let total = 0;
+            let totaisPorLotacao = {};
+            let totaisPorRecurso = {};
+            
+            entradas.forEach((entrada, index) => {
+                total += entrada.valor;
+                totaisPorLotacao[entrada.lotacao] = (totaisPorLotacao[entrada.lotacao] || 0) + entrada.valor;
+                totaisPorRecurso[entrada.recurso] = (totaisPorRecurso[entrada.recurso] || 0) + entrada.valor;
+                
+                tbody.innerHTML += `<tr>
+                    <td>${entrada.credor}</td>
+                    <td>${entrada.lotacao}</td>
+                    <td>${entrada.recurso}</td>
+                    <td>R$ ${entrada.valor.toFixed(2)}</td>
+                    <td class="action-buttons">
+                        <button onclick="editarEntrada(${index})">Editar</button>
+                        <button onclick="removerEntrada(${index})">Remover</button>
+                    </td>
+                </tr>`;
+            });
+            
+            document.getElementById("totalGeral").innerText = total.toFixed(2);
+            document.getElementById("totalPorLotacao").innerHTML = Object.entries(totaisPorLotacao).map(([l, v]) => `<li>${l}: R$ ${v.toFixed(2)}</li>`).join("");
+            document.getElementById("totalPorRecurso").innerHTML = Object.entries(totaisPorRecurso).map(([r, v]) => `<li>${r}: R$ ${v.toFixed(2)}</li>`).join("");
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+        <html lang="pt-br">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Calculadora de Tributos</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background-color: #f4f4f4;
+                    margin: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                }
+
+                h1 {
+                    color: #333;
+                    margin-bottom: 20px;
+                }
+
+                #calculadoraForm {
+                    background-color: #fff;
+                    padding: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                    width: 80%;
+                    max-width: 600px;
+                    margin-bottom: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 15px;
+                }
+
+                #calculadoraForm div {
+                    margin-bottom: 15px;
+                }
+
+                #calculadoraForm label {
+                    display: block;
+                    margin-bottom: 5px;
+                    color: #555;
+                    font-weight: bold;
+                }
+
+                #calculadoraForm input[type="text"],
+                #calculadoraForm input[type="date"],
+                #calculadoraForm input[type="number"],
+                #calculadoraForm select {
+                    width: calc(100% - 12px);
+                    padding: 8px;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    box-sizing: border-box;
+                    font-size: 16px;
+                }
+
+                #calculadoraForm .cnpj-info {
+                    font-size: 0.8em;
+                    font-weight: bold;
+                    color: #777;
+                    margin-top: 5px;
+                }
+
+                .tributos-selecao {
+                    margin-top: 15px;
+                    border-top: 1px solid #eee;
+                    padding-top: 15px;
+                }
+
+                .tributos-selecao label {
+                    display: inline-block;
+                    margin-right: 15px;
+                    font-weight: normal;
+                }
+
+                .buttons-container {
+                    display: flex;
+                    gap: 10px;
+                    margin-top: 20px;
+                }
+
+                #calculadoraForm button {
+                    background-color: #007bff;
+                    color: white;
+                    padding: 10px 15px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    transition: background-color 0.3s ease;
+                    flex-grow: 1;
+                }
+
+                #calculadoraForm button.clear-button {
+                    background-color: #6c757d;
+                }
+
+                #calculadoraForm button.clear-button:hover {
+                    background-color: #545b62;
+                }
+
+                #calculadoraForm button:hover {
+                    background-color: #0056b3;
+                }
+
+                .output-container {
+                    background-color: #e9ecef;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                    width: 80%;
+                    max-width: 700px;
+                    display: none;
+                    margin-bottom: 20px;
+                }
+
+                .output-container h2 {
+                    color: #333;
+                    margin-top: 0;
+                    margin-bottom: 15px;
+                    border-bottom: 2px solid #ccc;
+                    padding-bottom: 10px;
+                }
+
+                .container {
+                    display: flex;
+                    gap: 30px;
+                }
+
+                .left-column, .right-column {
+                    flex: 1;
+                }
+
+                .output-line {
+                    margin-bottom: 8px;
+                    color: #555;
+                    font-size: 16px;
+                }
+
+                .output-line strong {
+                    font-weight: bold;
+                    color: #333;
+                }
+
+                #imageDownloadButton {
+                    background-color: #28a745;
+                    color: white;
+                    padding: 10px 15px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    transition: background-color 0.3s ease;
+                    margin-top: 10px;
+                    display: none; /* Initially hidden */
+                }
+
+                #imageDownloadButton:hover {
+                    background-color: #1e7e34;
+                }
+            </style>
+        </head>
+        <body>
+
+            <h1>Calculadora de Tributos</h1>
+
+            <form id="calculadoraForm">
+                <div>
+                    <label for="nomeEmpresa">Nome/Empresa:</label>
+                    <input type="text" id="nomeEmpresa" name="nomeEmpresa" required>
+                </div>
+                <div>
+                    <label for="cpfCnpj">CPF ou CNPJ:</label>
+                    <input type="text" id="cpfCnpj" name="cpfCnpj" required>
+                </div>
+                <div>
+                    <label for="endereco">Endereço:</label>
+                    <input type="text" id="endereco" name="endereco" required>
+                </div>
+                <div>
+                    <label for="dataNascimento">Data de Nascimento:</label>
+                    <input type="date" id="dataNascimento" name="dataNascimento">
+                </div>
+                <div>
+                    <label for="lotacao">Lotação:</label>
+                    <select id="lotacao" name="lotacao">
+                        <option value="">Selecione</option>
+                        <option value="Secretaria Municipal de Agricultura">Secretaria Municipal de Agricultura</option>
+                        <option value="Secretaria Municipal de Administração">Secretaria Municipal de Administração</option>
+                        <option value="Secretaria Municipal de Cultura, Turismo e Meio Ambiente">Secretaria Municipal de Cultura, Turismo e Meio Ambiente</option>
+                        <option value="Secretaria Municipal de Esporte">Secretaria Municipal de Esporte</option>
+                        <option value="Secretaria Municipal de Infraestrutura">Secretaria Municipal de Infraestrutura</option>
+			<option value="Secretaria Municipal de Finanças">Secretaria Municipal de Finanças</option>
+                        <option value="Fundo Municipal de Assistência Social">Fundo Municipal de Assistência Social</option>
+                        <option value="Fundo Municipal de Educação">Fundo Municipal de Educação</option>
+                        <option value="Fundo Municipal de Saúde">Fundo Municipal de Saúde</option>
+                    </select>
+                    <div id="cnpjInfo" class="cnpj-info"></div>
+                </div>
+                <div>
+                    <label for="servico">Serviço:</label>
+                    <input type="text" id="servico" name="servico">
+                </div>
+                <div>
+                    <label for="cbo">CBO:</label>
+                    <input type="text" id="cbo" name="cbo">
+                </div>
+                <div>
+                    <label for="valorBruto">Valor Bruto:</label>
+                    <input type="number" id="valorBruto" name="valorBruto" step="0.01" required>
+                </div>
+
+                <div class="tributos-selecao">
+                    <label><input type="checkbox" id="calcularIss" name="calcularIss" checked> Calcular ISS (5%)</label>
+                    <label><input type="checkbox" id="calcularInss" name="calcularInss" checked> Calcular INSS (11%)</label>
+                    <label><input type="checkbox" id="calcularIrrf" name="calcularIrrf"> Calcular IRRF</label>
+                </div>
+
+                <div class="buttons-container">
+                    <button type="button" onclick="calcularTributos()">Calcular</button>
+                    <button type="button" class="clear-button" onclick="limparCampos()">Limpar Campos</button>
+                </div>
+            </form>
+
+            <div class="output-container" id="resultadoContainer" style="display: none;">
+                <h2>Demonstrativo de NF's - 2025</h2>
+                <div class="container">
+                    <div class="left-column">
+                        <p class="output-line"><strong>Nome/Empresa:</strong> <span id="outputNomeEmpresa"></span></p>
+                        <p class="output-line"><strong>CPF/CNPJ:</strong> <span id="outputCpfCnpj"></span></p>
+                        <p class="output-line"><strong>Endereço:</strong> <span id="outputEndereco"></span></p>
+                        <p class="output-line"><strong>Data de Nascimento:</strong> <span id="outputDataNascimento"></span></p>
+                        <p class="output-line"><strong>Lotação:</strong> <span id="outputLotacao"></span></p>
+                        <p class="output-line"><strong>Serviço:</strong> <span id="outputServico"></span></p>
+                        <p class="output-line"><strong>CBO:</strong> <span id="outputCbo"></span></p>
+                    </div>
+                    <div class="right-column">
+                        <p class="output-line"><strong>Valor Bruto:</strong> R$ <span id="outputValorBruto"></span></p>
+                        <p class="output-line"><strong>ISS (5%):</strong> R$ <span id="outputIss"></span></p>
+                        <p class="output-line"><strong>INSS (11%):</strong> R$ <span id="outputInss"></span></p>
+                        <p class="output-line"><strong>IRRF:</strong> R$ <span id="outputIrrf"></span></p>
+                        <p class="output-line"><strong>Total de Tributos:</strong> R$ <span id="outputTotalTributos"></span></p>
+                        <p class="output-line"><strong>Valor Líquido:</strong> R$ <span id="outputValorLiquido"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="imageDownloadButton" onclick="gerarImagem()">Gerar Demonstrativo (Imagem)</button>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+            <script>
+                const cnpjMap = {
+                    "Secretaria Municipal de Administração": "CNPJ 12.334.629/0001-57",
+                    "Secretaria Municipal de Agricultura": "CNPJ 12.334.629/0001-57",
+                    "Secretaria Municipal de Cultura, Turismo e Meio Ambiente": "CNPJ 12.334.629/0001-57",
+                    "Secretaria Municipal de Esporte": "CNPJ 12.334.629/0001-57",
+                    "Secretaria Municipal de Infraestrutura": "CNPJ 12.334.629/0001-57",
+		    "Secretaria Municipal de Finanças": "CNPJ 12.334.629/0001-57",
+                    "Fundo Municipal de Assistência Social": "CNPJ 24.029.768/0001-56",
+                    "Fundo Municipal de Educação": "CNPJ 31.262.377/0001-42",
+                    "Fundo Municipal de Saúde": "CNPJ 11.401.087/0001-25"
+                };
+
+                document.getElementById("lotacao").addEventListener("change", function() {
+                    const selectedLotacao = this.value;
+                    const cnpjInfoDiv = document.getElementById("cnpjInfo");
+                    cnpjInfoDiv.textContent = cnpjMap[selectedLotacao] || "";
+                });
+
+                function formatCpfCnpj(cpfCnpj) {
+                    const cleanedValue = cpfCnpj.replace(/[^0-9]/g, '');
+                    if (cleanedValue.length === 11) {
+                        return cleanedValue.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "\$1.\$2.\$3-\$4");
+                    } else if (cleanedValue.length === 14) {
+                        return cleanedValue.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "\$1.\$2.\$3/\$4-\$5");
+                    }
+                    return cpfCnpj; // Retorna o valor original se não for CPF nem CNPJ
+                }
+
+                function calcularTributos() {
+                    const nomeEmpresa = document.getElementById("nomeEmpresa").value;
+                    const cpfCnpj = document.getElementById("cpfCnpj").value;
+                    const endereco = document.getElementById("endereco").value;
+                    const dataNascimentoInput = document.getElementById("dataNascimento").value;
+                    const lotacao = document.getElementById("lotacao").value;
+                    const servico = document.getElementById("servico").value;
+                    const cbo = document.getElementById("cbo").value;
+                    const valorBruto = parseFloat(document.getElementById("valorBruto").value);
+
+                    const calcularIss = document.getElementById("calcularIss").checked;
+                    const calcularInss = document.getElementById("calcularInss").checked;
+                    const calcularIrrf = document.getElementById("calcularIrrf").checked;
+
+                    let iss = 0;
+                    let inss = 0;
+                    let irrf = 0;
+
+                    if (calcularIss) {
+                        iss = valorBruto * 0.05;
+                    }
+
+                    if (calcularInss) {
+                        inss = valorBruto * 0.11;
+                    }
+
+                    if (calcularIrrf) {
+                        const baseIrrf = valorBruto - inss;
+                        if (baseIrrf <= 2428.80) {
+                            irrf = 0;
+                        } else if (baseIrrf <= 2826.65) {
+                            irrf = (baseIrrf * 0.075) - 182.16;
+                        } else if (baseIrrf <= 3751.05) {
+                            irrf = (baseIrrf * 0.15) - 394.16;
+                        } else if (baseIrrf <= 4664.68) {
+                            irrf = (baseIrrf * 0.225) - 675.49;
+                        } else {
+                            irrf = (baseIrrf * 0.275) - 908.73;
+                        }
+                    }
+
+                    const totalTributos = iss + inss + irrf;
+                    const valorLiquido = valorBruto - totalTributos;
+
+                    // Formatação da data
+                    let dataNascimentoFormatada = "";
+                    if (dataNascimentoInput) {
+                        const dataNascimento = new Date(dataNascimentoInput);
+                        const dia = dataNascimento.getDate().toString().padStart(2, '0');
+                        const mes = (dataNascimento.getMonth() + 1).toString().padStart(2, '0'); // Meses começam em 0
+                        const ano = dataNascimento.getFullYear();
+                        dataNascimentoFormatada = `${dia}/${mes}/${ano}`;
+                    }
+
+                     // Formatar CPF/CNPJ
+                    const cpfCnpjFormatado = formatCpfCnpj(cpfCnpj);
+
+                    document.getElementById("outputNomeEmpresa").textContent = nomeEmpresa;
+                     document.getElementById("outputCpfCnpj").textContent = cpfCnpjFormatado;
+                    document.getElementById("outputEndereco").textContent = endereco;
+                    document.getElementById("outputDataNascimento").textContent = dataNascimentoFormatada;
+                    document.getElementById("outputLotacao").textContent = lotacao;
+                    document.getElementById("outputServico").textContent = servico;
+                    document.getElementById("outputCbo").textContent = cbo;
+                    document.getElementById("outputValorBruto").textContent = valorBruto.toFixed(2);
+                    document.getElementById("outputIss").textContent = iss.toFixed(2);
+                    document.getElementById("outputInss").textContent = inss.toFixed(2);
+                    document.getElementById("outputIrrf").textContent = irrf.toFixed(2);
+                    document.getElementById("outputTotalTributos").textContent = totalTributos.toFixed(2);
+                    document.getElementById("outputValorLiquido").textContent = valorLiquido.toFixed(2);
+
+                    document.querySelector(".output-container").style.display = "block";
+                    document.getElementById("imageDownloadButton").style.display = "block";
+                }
+
+                function limparCampos() {
+                    document.getElementById("calculadoraForm").reset();
+                    document.getElementById("cnpjInfo").textContent = "";
+                    document.querySelector(".output-container").style.display = "none";
+                    document.getElementById("imageDownloadButton").style.display = "none";
+                }
+
+                function gerarImagem() {
+                    const resultadoContainer = document.getElementById("resultadoContainer");
+                    const nomeEmpresa = document.getElementById("nomeEmpresa").value.replace(/[^a-zA-Z0-9]/g, '_') || "Nome_Demo";
+
+                    // Gerar código único para o nome do arquivo
+                    const dataAtual = new Date();
+                    const ano = dataAtual.getFullYear();
+                    const mes = (dataAtual.getMonth() + 1).toString().padStart(2, '0');
+                    const dia = dataAtual.getDate().toString().padStart(2, '0');
+                    const horas = dataAtual.getHours().toString().padStart(2, '0');
+                    const minutos = dataAtual.getMinutes().toString().padStart(2, '0');
+                    const segundos = dataAtual.getSeconds().toString().padStart(2, '0');
+                    const numeroAleatorio = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                    const nomeArquivo = `${nomeEmpresa}_${ano}${mes}${dia}_${horas}${minutos}${segundos}_${numeroAleatorio}.png`;
+
+                    html2canvas(resultadoContainer).then(canvas => {
+                        const link = document.createElement('a');
+                        link.download = nomeArquivo;
+                        link.href = canvas.toDataURL();
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    });
+                }
+            </script>
+
+        </body>
+        </html>

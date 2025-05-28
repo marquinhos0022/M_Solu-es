@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Abastecimento</title>
+    <script defer src="script.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: auto; }
+        label, select, input, button { display: block; margin-top: 10px; width: 100%; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 5px; text-align: center; }
+        .quinzenas-passadas { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Registro de Abastecimento</h2>
+        <label for="posto">Escolha o Posto:</label>
+        <select id="posto">
+            <option value="Posto Brandão">Posto Brandão</option>
+            <option value="Auto Posto As">Auto Posto As</option>
+        </select>
+
+        <label for="dataNota">Data da Nota:</label>
+        <input type="date" id="dataNota">
+        
+        <label for="numNota">Número da Nota:</label>
+        <input type="text" id="numNota">
+
+        <label for="lotacao">Lotação:</label>
+        <input type="text" id="lotacao">
+
+        <label for="qtdLitros">Quantidade de Litros:</label>
+        <input type="number" id="qtdLitros" step="0.01">
+
+        <label for="valorUnitario">Valor Unitário:</label>
+        <input type="number" id="valorUnitario" step="0.01">
+
+        <button onclick="adicionarRegistro()">Adicionar Registro</button>
+        <button onclick="limparCampos()">Limpar Campos</button>
+        <button onclick="finalizarQuinzena()">Fim da Quinzena</button>
+        <button onclick="gerarRelatorio()">Gerar Relatório</button>
+
+        <h3>Registros da Quinzena Atual</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Posto</th>
+                    <th>Data</th>
+                    <th>Nº Nota</th>
+                    <th>Lotação</th>
+                    <th>Litros</th>
+                    <th>Valor Total</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaRegistros"></tbody>
+        </table>
+
+        <div class="quinzenas-passadas">
+            <h3>Consultar Quinzenas Passadas</h3>
+            <label for="quinzenasSelect">Selecione a Quinzena:</label>
+            <select id="quinzenasSelect" onchange="consultarQuinzena()"></select>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Posto</th>
+                        <th>Data</th>
+                        <th>Nº Nota</th>
+                        <th>Lotação</th>
+                        <th>Litros</th>
+                        <th>Valor Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaQuinzenaPassada"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let registros = JSON.parse(localStorage.getItem("registrosAtuais")) || [];
+
+        function adicionarRegistro() {
+            const posto = document.getElementById("posto").value;
+            const dataNota = document.getElementById("dataNota").value;
+            const numNota = document.getElementById("numNota").value;
+            const lotacao = document.getElementById("lotacao").value;
+            const qtdLitros = parseFloat(document.getElementById("qtdLitros").value);
+            const valorUnitario = parseFloat(document.getElementById("valorUnitario").value);
+            const valorTotal = qtdLitros * valorUnitario;
+
+            if (!dataNota || !numNota || !lotacao || isNaN(qtdLitros) || isNaN(valorUnitario)) {
+                alert("Preencha todos os campos corretamente!");
+                return;
+            }
+
+            registros.push({ posto, dataNota, numNota, lotacao, qtdLitros, valorTotal });
+            localStorage.setItem("registrosAtuais", JSON.stringify(registros));
+            atualizarTabela();
+        }
+
+        function limparCampos() {
+            document.getElementById("dataNota").value = "";
+            document.getElementById("numNota").value = "";
+            document.getElementById("lotacao").value = "";
+            document.getElementById("qtdLitros").value = "";
+            document.getElementById("valorUnitario").value = "";
+        }
+
+        function atualizarTabela() {
+            const tabela = document.getElementById("tabelaRegistros");
+            tabela.innerHTML = "";
+            registros.forEach(registro => {
+                let row = tabela.insertRow();
+                row.innerHTML = `<td>${registro.posto}</td><td>${registro.dataNota}</td><td>${registro.numNota}</td>
+                                 <td>${registro.lotacao}</td><td>${registro.qtdLitros.toFixed(2)}</td>
+                                 <td>R$ ${registro.valorTotal.toFixed(2)}</td>`;
+            });
+        }
+
+        function finalizarQuinzena() {
+            if (registros.length === 0) {
+                alert("Não há registros para salvar.");
+                return;
+            }
+
+            const dataAtual = new Date();
+            const chaveQuinzena = `Quinzena-${dataAtual.getFullYear()}-${dataAtual.getMonth() + 1}-${dataAtual.getDate()}`;
+            localStorage.setItem(chaveQuinzena, JSON.stringify(registros));
+            
+            registros = [];
+            localStorage.setItem("registrosAtuais", JSON.stringify(registros));
+            atualizarTabela();
+            carregarQuinzenas();
+            alert("Registros da quinzena salvos com sucesso!");
+        }
+
+        function carregarQuinzenas() {
+            const select = document.getElementById("quinzenasSelect");
+            select.innerHTML = "<option value=''>Selecione uma quinzena</option>";
+
+            for (let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                if (key.startsWith("Quinzena-")) {
+                    let option = document.createElement("option");
+                    option.value = key;
+                    option.textContent = key.replace("Quinzena-", "");
+                    select.appendChild(option);
+                }
+            }
+        }
+
+        function consultarQuinzena() {
+            const chaveSelecionada = document.getElementById("quinzenasSelect").value;
+            if (!chaveSelecionada) return;
+
+            const registrosPassados = JSON.parse(localStorage.getItem(chaveSelecionada)) || [];
+            const tabela = document.getElementById("tabelaQuinzenaPassada");
+            tabela.innerHTML = "";
+
+            registrosPassados.forEach(registro => {
+                let row = tabela.insertRow();
+                row.innerHTML = `<td>${registro.posto}</td><td>${registro.dataNota}</td><td>${registro.numNota}</td>
+                                 <td>${registro.lotacao}</td><td>${registro.qtdLitros.toFixed(2)}</td>
+                                 <td>R$ ${registro.valorTotal.toFixed(2)}</td>`;
+            });
+        }
+
+        function gerarRelatorio() {
+            let relatorio = "Registros da Quinzena:\n\n";
+            registros.forEach(registro => {
+                relatorio += `Posto: ${registro.posto}, Data: ${registro.dataNota}, Nº Nota: ${registro.numNota}, Lotação: ${registro.lotacao}, Litros: ${registro.qtdLitros.toFixed(2)}, Valor Total: R$ ${registro.valorTotal.toFixed(2)}\n`;
+            });
+            alert(relatorio);
+        }
+
+        atualizarTabela();
+        carregarQuinzenas();
+    </script>
+</body>
+</html>
